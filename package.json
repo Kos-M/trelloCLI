@@ -6,8 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "bin": {
+    "trelloCLI": "./index.js"
+  },
+  "keywords": [
+    "Trello",
+    "cli"
+  ],
+  "author": "Kos-M",
+  "repository": "https://github.com/Kos-M/trelloCLI",
   "license": "ISC",
   "description": "",
   "dependencies": {

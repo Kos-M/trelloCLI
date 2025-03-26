@@ -25,17 +25,18 @@ Available Commands:
   move "<board_name>" "<from_list_name>" "<task_name>" "<to_list_name>"  Move a task
   add "<board_name>" "<list_name>" "<task_name>"                         Add a task
   delete "<board_name>" "<list_name>" "<task_name>"                      Delete a task
+  get "<board_name>" "<list_name>"                                       Get all tasks from a list
   --help, -h                                                             Show help
 
 Examples:
   trelloCLI move "Roadmap" "In Progress" "Fix bug #42" "Done"
   trelloCLI add "Roadmap" "To Do" "Review PR"
   trelloCLI delete "Roadmap" "In Progress" "Fix bug #42"
-  trelloCLI
+  trelloCLI get "Roadmap" "In Progress"
   `);
 }
 
-// Fetch boards
+// Fetch board by name
 async function getBoardByName(name) {
   const response = await axios.get(`${BASE_URL}/members/me/boards`, {
     params: { key: API_KEY, token: TOKEN },
@@ -50,7 +51,7 @@ async function getBoardByName(name) {
   return board;
 }
 
-// Fetch lists from a board by name
+// Fetch list by name
 async function getListByName(boardId, name) {
   const response = await axios.get(`${BASE_URL}/boards/${boardId}/lists`, {
     params: { key: API_KEY, token: TOKEN },
@@ -65,7 +66,7 @@ async function getListByName(boardId, name) {
   return list;
 }
 
-// Fetch a task by name from a list
+// Fetch task by name
 async function getTaskByName(listId, taskName) {
   const response = await axios.get(`${BASE_URL}/lists/${listId}/cards`, {
     params: { key: API_KEY, token: TOKEN },
@@ -119,6 +120,26 @@ async function deleteTask(boardName, listName, taskName) {
   console.log(`✅ Task "${taskName}" deleted from "${listName}"`);
 }
 
+// NEW: Get all tasks from a list
+async function getTasksFromList(boardName, listName) {
+  const board = await getBoardByName(boardName);
+  const list = await getListByName(board.id, listName);
+
+  const response = await axios.get(`${BASE_URL}/lists/${list.id}/cards`, {
+    params: { key: API_KEY, token: TOKEN },
+  });
+
+  if (response.data.length === 0) {
+    console.log(`ℹ️ No tasks found in "${listName}".`);
+    return;
+  }
+
+  console.log(`📋 Tasks in "${listName}":`);
+  response.data.forEach((task) => {
+    console.log(`- ${task.name}`);
+  });
+}
+
 // CLI Entry Function
 async function main() {
   const args = process.argv.slice(2);
@@ -149,6 +170,12 @@ async function main() {
       return;
     }
 
+    if (action === "get" && params.length === 1) {
+      const [listName] = params;
+      await getTasksFromList(boardName, listName);
+      return;
+    }
+
     console.error("Invalid arguments. Run --help for usage instructions.");
     process.exit(1);
   }
@@ -173,55 +200,28 @@ async function main() {
       type: "list",
       name: "action",
       message: "Choose an action:",
-      choices: ["Move a task", "Add a task", "Delete a task"],
+      choices: [
+        "Move a task",
+        "Add a task",
+        "Delete a task",
+        "Get tasks from a list",
+      ],
     },
   ]);
 
-  if (action === "Move a task") {
-    const fromList = await getListByName(
-      boards.id,
-      await inquirer
-        .prompt([
-          {
-            type: "list",
-            name: "listName",
-            message: "Select list to move from:",
-            choices: lists.map((l) => l.name),
-          },
-        ])
-        .then((a) => a.listName)
-    );
+  if (action === "Get tasks from a list") {
+    const listName = await inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "listName",
+          message: "Select list:",
+          choices: lists.map((l) => l.name),
+        },
+      ])
+      .then((a) => a.listName);
 
-    const cards = await getCards(fromList.id);
-    const card = await getTaskByName(
-      fromList.id,
-      await inquirer
-        .prompt([
-          {
-            type: "list",
-            name: "cardName",
-            message: "Select a task to move:",
-            choices: cards.map((c) => c.name),
-          },
-        ])
-        .then((a) => a.cardName)
-    );
-
-    const toList = await getListByName(
-      boards.id,
-      await inquirer
-        .prompt([
-          {
-            type: "list",
-            name: "listName",
-            message: "Select destination list:",
-            choices: lists.map((l) => l.name),
-          },
-        ])
-        .then((a) => a.listName)
-    );
-
-    await moveTask(boards.name, fromList.name, card.name, toList.name);
+    await getTasksFromList(boards.name, listName);
   }
 }
 

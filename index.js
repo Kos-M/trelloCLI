@@ -27,6 +27,7 @@ Available Commands:
   delete "<board_name>" "<list_name>" "<task_name>"                      Delete a task
   get "<board_name>" "<list_name>"                                       Get all tasks from a list
   append "<board_name>" "<list_name>" "<task_name>" "<extra_info>"       Append info to a task
+  comment "<board_name>" "<list_name>" "<task_name>" "<comment_text>"    Add a comment to a task
   --help, -h                                                             Show help
 
 Examples:
@@ -35,6 +36,7 @@ Examples:
   trello-cli delete "Roadmap" "In Progress" "Fix bug #42"
   trello-cli get "Roadmap" "In Progress"
   trello-cli append "Roadmap" "In Progress" "Fix bug #42" "New debug logs added."
+  trello-cli comment "Roadmap" "In Progress" "Fix bug #42" "This needs further testing."
   `);
 }
 
@@ -122,6 +124,19 @@ async function getTasksFromList(boardName, listName) {
   });
 }
 
+// Add a comment to a task
+async function addComment(boardName, listName, taskName, commentText) {
+  const board = await getBoardByName(boardName);
+  const list = await getListByName(board.id, listName);
+  const task = await getTaskByName(list.id, taskName);
+
+  await axios.post(`${BASE_URL}/cards/${task.id}/actions/comments`, null, {
+    params: { key: API_KEY, token: TOKEN, text: commentText },
+  });
+
+  console.log(`💬 Comment added to "${taskName}": "${commentText}"`);
+}
+
 // CLI Entry Function
 async function main() {
   const args = process.argv.slice(2);
@@ -162,6 +177,13 @@ async function main() {
       const [listName, taskName, ...extraInfoArr] = params;
       const extraInfo = extraInfoArr.join(" "); // Join extra info into a single string
       await appendToTask(boardName, listName, taskName, extraInfo);
+      return;
+    }
+
+    if (action === "comment" && params.length >= 2) {
+      const [listName, taskName, ...commentArr] = params;
+      const commentText = commentArr.join(" "); // Join comment text into a single string
+      await addComment(boardName, listName, taskName, commentText);
       return;
     }
 

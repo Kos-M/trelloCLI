@@ -11,7 +11,7 @@ const TOKEN = process.env.TRELLO_TOKEN;
 const BASE_URL = "https://api.trello.com/1";
 
 if (!API_KEY || !TOKEN) {
-  console.error("Missing Trello API Key or Token. Set them in .env file.");
+  console.error("❌ Missing Trello API Key or Token. Set them in .env file.");
   process.exit(1);
 }
 
@@ -19,20 +19,22 @@ if (!API_KEY || !TOKEN) {
 function showHelp() {
   console.log(`
 Usage:
-  trelloCLI [command] [args]
+  trello-cli [command] [args]
 
 Available Commands:
   move "<board_name>" "<from_list_name>" "<task_name>" "<to_list_name>"  Move a task
   add "<board_name>" "<list_name>" "<task_name>"                         Add a task
   delete "<board_name>" "<list_name>" "<task_name>"                      Delete a task
   get "<board_name>" "<list_name>"                                       Get all tasks from a list
+  append "<board_name>" "<list_name>" "<task_name>" "<extra_info>"       Append info to a task
   --help, -h                                                             Show help
 
 Examples:
-  trelloCLI move "Roadmap" "In Progress" "Fix bug #42" "Done"
-  trelloCLI add "Roadmap" "To Do" "Review PR"
-  trelloCLI delete "Roadmap" "In Progress" "Fix bug #42"
-  trelloCLI get "Roadmap" "In Progress"
+  trello-cli move "Roadmap" "In Progress" "Fix bug #42" "Done"
+  trello-cli add "Roadmap" "To Do" "Review PR"
+  trello-cli delete "Roadmap" "In Progress" "Fix bug #42"
+  trello-cli get "Roadmap" "In Progress"
+  trello-cli append "Roadmap" "In Progress" "Fix bug #42" "New debug logs added."
   `);
 }
 
@@ -81,46 +83,24 @@ async function getTaskByName(listId, taskName) {
   return task;
 }
 
-// Move a task
-async function moveTask(boardName, fromListName, taskName, toListName) {
-  const board = await getBoardByName(boardName);
-  const fromList = await getListByName(board.id, fromListName);
-  const toList = await getListByName(board.id, toListName);
-  const task = await getTaskByName(fromList.id, taskName);
-
-  await axios.put(`${BASE_URL}/cards/${task.id}`, null, {
-    params: { key: API_KEY, token: TOKEN, idList: toList.id },
-  });
-
-  console.log(`✅ Task "${taskName}" moved to "${toListName}"`);
-}
-
-// Add a task
-async function addTask(boardName, listName, taskName) {
-  const board = await getBoardByName(boardName);
-  const list = await getListByName(board.id, listName);
-
-  await axios.post(`${BASE_URL}/cards`, null, {
-    params: { key: API_KEY, token: TOKEN, idList: list.id, name: taskName },
-  });
-
-  console.log(`✅ Task "${taskName}" added to "${listName}"`);
-}
-
-// Delete a task
-async function deleteTask(boardName, listName, taskName) {
+// Append extra info to a task's description
+async function appendToTask(boardName, listName, taskName, extraInfo) {
   const board = await getBoardByName(boardName);
   const list = await getListByName(board.id, listName);
   const task = await getTaskByName(list.id, taskName);
 
-  await axios.delete(`${BASE_URL}/cards/${task.id}`, {
-    params: { key: API_KEY, token: TOKEN },
+  const updatedDescription = task.desc
+    ? `${task.desc.trim()}\n\n📝 ${extraInfo}`
+    : `📝 ${extraInfo}`;
+
+  await axios.put(`${BASE_URL}/cards/${task.id}`, null, {
+    params: { key: API_KEY, token: TOKEN, desc: updatedDescription },
   });
 
-  console.log(`✅ Task "${taskName}" deleted from "${listName}"`);
+  console.log(`✅ Info appended to "${taskName}"`);
 }
 
-// NEW: Get all tasks from a list
+// Get all tasks from a list with descriptions
 async function getTasksFromList(boardName, listName) {
   const board = await getBoardByName(boardName);
   const list = await getListByName(board.id, listName);
@@ -134,9 +114,11 @@ async function getTasksFromList(boardName, listName) {
     return;
   }
 
-  console.log(`📋 Tasks in "${listName}":`);
+  console.log(`📋 Tasks in "${listName}":\n`);
+
   response.data.forEach((task) => {
-    console.log(`- ${task.name}`);
+    console.log(`${task.name}`);
+    if (task.desc) console.log(`- ${task.desc.trim()}\n`);
   });
 }
 
@@ -176,52 +158,15 @@ async function main() {
       return;
     }
 
-    console.error("Invalid arguments. Run --help for usage instructions.");
+    if (action === "append" && params.length >= 2) {
+      const [listName, taskName, ...extraInfoArr] = params;
+      const extraInfo = extraInfoArr.join(" "); // Join extra info into a single string
+      await appendToTask(boardName, listName, taskName, extraInfo);
+      return;
+    }
+
+    console.error("❌ Invalid arguments. Run --help for usage instructions.");
     process.exit(1);
-  }
-
-  // Interactive Mode
-  const boards = await getBoardByName(
-    await inquirer
-      .prompt([
-        { type: "input", name: "boardName", message: "Enter board name:" },
-      ])
-      .then((a) => a.boardName)
-  );
-
-  const lists = await axios
-    .get(`${BASE_URL}/boards/${boards.id}/lists`, {
-      params: { key: API_KEY, token: TOKEN },
-    })
-    .then((res) => res.data);
-
-  const { action } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "action",
-      message: "Choose an action:",
-      choices: [
-        "Move a task",
-        "Add a task",
-        "Delete a task",
-        "Get tasks from a list",
-      ],
-    },
-  ]);
-
-  if (action === "Get tasks from a list") {
-    const listName = await inquirer
-      .prompt([
-        {
-          type: "list",
-          name: "listName",
-          message: "Select list:",
-          choices: lists.map((l) => l.name),
-        },
-      ])
-      .then((a) => a.listName);
-
-    await getTasksFromList(boards.name, listName);
   }
 }
 

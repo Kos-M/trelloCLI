@@ -124,6 +124,18 @@ async function getTasksFromList(boardName, listName) {
   });
 }
 
+// Add a task
+async function addTask(boardName, listName, taskName) {
+  const board = await getBoardByName(boardName);
+  const list = await getListByName(board.id, listName);
+
+  await axios.post(`${BASE_URL}/cards`, null, {
+    params: { key: API_KEY, token: TOKEN, idList: list.id, name: taskName },
+  });
+
+  console.log(`✅ Task "${taskName}" added to "${listName}"`);
+}
+
 // Add a comment to a task
 async function addComment(boardName, listName, taskName, commentText) {
   const board = await getBoardByName(boardName);
@@ -135,6 +147,33 @@ async function addComment(boardName, listName, taskName, commentText) {
   });
 
   console.log(`💬 Comment added to "${taskName}": "${commentText}"`);
+}
+
+// Move a task
+async function moveTask(boardName, fromListName, taskName, toListName) {
+  const board = await getBoardByName(boardName);
+  const fromList = await getListByName(board.id, fromListName);
+  const toList = await getListByName(board.id, toListName);
+  const task = await getTaskByName(fromList.id, taskName);
+
+  await axios.put(`${BASE_URL}/cards/${task.id}`, null, {
+    params: { key: API_KEY, token: TOKEN, idList: toList.id },
+  });
+
+  console.log(`✅ Task "${taskName}" moved to "${toListName}"`);
+}
+
+// Delete a task
+async function deleteTask(boardName, listName, taskName) {
+  const board = await getBoardByName(boardName);
+  const list = await getListByName(board.id, listName);
+  const task = await getTaskByName(list.id, taskName);
+
+  await axios.delete(`${BASE_URL}/cards/${task.id}`, {
+    params: { key: API_KEY, token: TOKEN },
+  });
+
+  console.log(`✅ Task "${taskName}" deleted from "${listName}"`);
 }
 
 // CLI Entry Function

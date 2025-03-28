@@ -19,7 +19,7 @@ if (!API_KEY || !TOKEN) {
 function showHelp() {
   console.log(`
 Usage:
-  trello-cli [command] [args]
+  trelloCLI [command] [args]
 
 Available Commands:
   move "<board_name>" "<from_list_name>" "<task_name>" "<to_list_name>"  Move a task
@@ -31,12 +31,12 @@ Available Commands:
   --help, -h                                                             Show help
 
 Examples:
-  trello-cli move "Roadmap" "In Progress" "Fix bug #42" "Done"
-  trello-cli add "Roadmap" "To Do" "Review PR"
-  trello-cli delete "Roadmap" "In Progress" "Fix bug #42"
-  trello-cli get "Roadmap" "In Progress"
-  trello-cli append "Roadmap" "In Progress" "Fix bug #42" "New debug logs added."
-  trello-cli comment "Roadmap" "In Progress" "Fix bug #42" "This needs further testing."
+  trelloCLI move "Roadmap" "In Progress" "Fix bug #42" "Done"
+  trelloCLI add "Roadmap" "To Do" "Review PR"
+  trelloCLI delete "Roadmap" "In Progress" "Fix bug #42"
+  trelloCLI get "Roadmap" "In Progress"
+  trelloCLI append "Roadmap" "In Progress" "Fix bug #42" "New debug logs added."
+  trelloCLI comment "Roadmap" "In Progress" "Fix bug #42" "This needs further testing."
   `);
 }
 

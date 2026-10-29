@@ -20,6 +20,7 @@ Every name is matched case-insensitively and must be exact otherwise (no partial
 |---|---|
 | List cards (with descriptions) | `get "<board>" "<list>"` |
 | Create a card | `add "<board>" "<list>" "<card>"` |
+| Create a list (right end of the board) | `add-list "<board>" "<list>"` |
 | Move a card | `move "<board>" "<from list>" "<card>" "<to list>"` |
 | Delete a card | `delete "<board>" "<list>" "<card>"` |
 | Append a line to the description | `append "<board>" "<list>" "<card>" "<text>"` |

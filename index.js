@@ -24,6 +24,7 @@ Usage:
 Available Commands:
   move "<board_name>" "<from_list_name>" "<task_name>" "<to_list_name>"  Move a task
   add "<board_name>" "<list_name>" "<task_name>"                         Add a task
+  add-list "<board_name>" "<list_name>"                                  Add a list (at the right end)
   delete "<board_name>" "<list_name>" "<task_name>"                      Delete a task
   get "<board_name>" "<list_name>"                                       Get all tasks from a list
   append "<board_name>" "<list_name>" "<task_name>" "<extra_info>"       Append info to a task
@@ -33,6 +34,7 @@ Available Commands:
 Examples:
   trelloCLI move "Roadmap" "In Progress" "Fix bug #42" "Done"
   trelloCLI add "Roadmap" "To Do" "Review PR"
+  trelloCLI add-list "Roadmap" "Backlog"
   trelloCLI delete "Roadmap" "In Progress" "Fix bug #42"
   trelloCLI get "Roadmap" "In Progress"
   trelloCLI append "Roadmap" "In Progress" "Fix bug #42" "New debug logs added."
@@ -137,6 +139,17 @@ async function addTask(boardName, listName, taskName) {
   console.log(`✅ Task "${taskName}" added to "${listName}"`);
 }
 
+// Add a list to the right end of a board
+async function addList(boardName, listName) {
+  const board = await getBoardByName(boardName);
+
+  await axios.post(`${BASE_URL}/lists`, null, {
+    params: { key: API_KEY, token: TOKEN, idBoard: board.id, name: listName, pos: "bottom" },
+  });
+
+  console.log(`✅ List "${listName}" added to "${boardName}"`);
+}
+
 // Add a comment to a task
 async function addComment(boardName, listName, taskName, commentText) {
   const board = await getBoardByName(boardName);
@@ -198,6 +211,12 @@ async function main() {
     if (action === "add" && params.length === 2) {
       const [listName, taskName] = params;
       await addTask(boardName, listName, taskName);
+      return;
+    }
+
+    if (action === "add-list" && params.length === 1) {
+      const [listName] = params;
+      await addList(boardName, listName);
       return;
     }
 

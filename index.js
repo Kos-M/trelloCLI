@@ -95,8 +95,9 @@ async function appendToTask(boardName, listName, taskName, extraInfo) {
     ? `${task.desc.trim()}\n\n📝 ${extraInfo}`
     : `📝 ${extraInfo}`;
 
-  await axios.put(`${BASE_URL}/cards/${task.id}`, null, {
-    params: { key: API_KEY, token: TOKEN, desc: updatedDescription },
+  // Send desc in the body: it grows with every append and would overflow the URL
+  await axios.put(`${BASE_URL}/cards/${task.id}`, { desc: updatedDescription }, {
+    params: { key: API_KEY, token: TOKEN },
   });
 
   console.log(`✅ Info appended to "${taskName}"`);
@@ -142,8 +143,8 @@ async function addComment(boardName, listName, taskName, commentText) {
   const list = await getListByName(board.id, listName);
   const task = await getTaskByName(list.id, taskName);
 
-  await axios.post(`${BASE_URL}/cards/${task.id}/actions/comments`, null, {
-    params: { key: API_KEY, token: TOKEN, text: commentText },
+  await axios.post(`${BASE_URL}/cards/${task.id}/actions/comments`, { text: commentText }, {
+    params: { key: API_KEY, token: TOKEN },
   });
 
   console.log(`💬 Comment added to "${taskName}": "${commentText}"`);
@@ -181,7 +182,7 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length > 0) {
-    if (args.includes("--help") || args.includes("-h")) {
+    if (args[0] === "--help" || args[0] === "-h") {
       showHelp();
       return;
     }
@@ -231,4 +232,10 @@ async function main() {
   }
 }
 
-main().catch((err) => console.error("❌ Error:", err.message));
+main().catch((err) => {
+  // Trello puts the real reason in the response body, not in axios's message
+  const detail = err.response?.data;
+  const reason = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message;
+  console.error("❌ Error:", reason);
+  process.exitCode = 1;
+});
